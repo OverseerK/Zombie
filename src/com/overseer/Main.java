@@ -38,6 +38,7 @@ public class Main<task> extends JavaPlugin implements Listener {
     Scoreboard Board = Manager.getMainScoreboard();
     Team Zombie;
     Team Human;
+    ItemStack Vaccine = new ItemStack(Material.POTION);
 
     @Override
     public void onEnable() {
