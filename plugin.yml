@@ -1,0 +1,13 @@
+name: Zombie
+version: 1.0
+main: com.overseer.Main
+api-version: 1.16
+commands:
+  zombie:
+    description: "makes you zombie"
+  human:
+    description: "makes you human"
+  zremove:
+    description: "removes you from zombie list"
+  zlist:
+    description: "shows team list"
