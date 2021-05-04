@@ -1,35 +1,36 @@
 package com.overseer;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Random;
 import java.util.Set;
 
-public class Main<task> extends JavaPlugin implements Listener {
+public class Main extends JavaPlugin implements Listener {
 
     Random Rand = new Random();
 
@@ -38,7 +39,7 @@ public class Main<task> extends JavaPlugin implements Listener {
     Scoreboard Board = Manager.getMainScoreboard();
     Team Zombie;
     Team Human;
-    ItemStack Vaccine = new ItemStack(Material.POTION);
+    ItemStack Antibiotic = new ItemStack(Material.HONEY_BOTTLE);
 
     @Override
     public void onEnable() {
@@ -47,7 +48,7 @@ public class Main<task> extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(this, this);
         if (Board.getTeam("Zombie") == null) {
             Zombie = Board.registerNewTeam("Zombie");
-            Zombie.setColor(ChatColor.RED);
+            Zombie.color(NamedTextColor.RED);
         } else {
             Zombie = Board.getTeam("Zombie");
         }
@@ -55,13 +56,24 @@ public class Main<task> extends JavaPlugin implements Listener {
             Human = Board.registerNewTeam("Human");
         } else {
             Human = Board.getTeam("Human");
-            Human.setColor(ChatColor.AQUA);
+            Human.color(NamedTextColor.AQUA);
         }
+        Antibiotic.getItemMeta().displayName(Component.text("§b항생제"));
+        ShapedRecipe AntibioticRecipe = new ShapedRecipe(new NamespacedKey(this, "antibiotic"), Antibiotic);
+        AntibioticRecipe.shape("GGG", "GHG", "GGG");
+        AntibioticRecipe.setIngredient('G', Material.GOLD_INGOT);
+        AntibioticRecipe.setIngredient('H', Material.HONEY_BOTTLE);
+        Bukkit.addRecipe(AntibioticRecipe);
     }
 
     @Override
     public void onDisable() {
         System.out.println("[Zombie] Disabled.");
+    }
+
+    @EventHandler
+    public void onJoin (PlayerJoinEvent e) {
+        e.getPlayer().getInventory().addItem(Antibiotic);
     }
 
     @Override
@@ -205,11 +217,16 @@ public class Main<task> extends JavaPlugin implements Listener {
         }
     }
 
-    public Player getRandomPlayer(Player p, Team team) { //팀 안의 랜덤 플레이어 찾기
-        Player o = (Player) team.getPlayers().stream().findAny().get();
-        while (o != p) {
-            o = (Player) team.getPlayers().stream().findAny().get();
+    public Player getRandomPlayer(Team team) { // 팀 안의 랜덤 플레이어 찾기
+        ArrayList TeamList = new ArrayList(); // 온라인 플레이어들 중 일점 팀만이 속한 리스트
+        for (Player o : Bukkit.getOnlinePlayers()) {
+            if (team.hasPlayer(o)) {
+                continue;
+            } else {
+                TeamList.add(o); // 일정 팀의 플레이어들만 리스트에 추가
+            }
         }
+        Player o = (Player) TeamList.get(Rand.nextInt(team.getSize()));
         return o;
     }
 
@@ -223,7 +240,7 @@ public class Main<task> extends JavaPlugin implements Listener {
                 if (p.getCooldown(Material.DIAMOND) != 0) {
                     p.sendMessage((p.getCooldown(Material.DIAMOND) / 20 + 1) + "초 남음");
                 } else {
-                    Player o = getRandomPlayer(p, Zombie);
+                    Player o = getRandomPlayer(Zombie);
                     if (o == p) {
                         p.sendMessage("주변에 좀비가 없습니다!");
                     } else {
@@ -244,7 +261,7 @@ public class Main<task> extends JavaPlugin implements Listener {
         ItemStack i = p.getInventory().getItemInMainHand();
         if (a == Action.RIGHT_CLICK_AIR && i.getType() == Material.HEART_OF_THE_SEA) {
             if (Zombie.hasPlayer(p)) {
-                Player o = getRandomPlayer(p, Human);
+                Player o = getRandomPlayer(Human);
                 if (p.getCooldown(Material.HEART_OF_THE_SEA) != 0) {
                     p.sendMessage((p.getCooldown(Material.HEART_OF_THE_SEA) / 20) + "초 남음");
                 } else if (o == p) {
