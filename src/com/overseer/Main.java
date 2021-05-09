@@ -1,13 +1,14 @@
 package com.overseer;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.event.EventHandler;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -21,22 +22,19 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Random;
-import java.util.Set;
+
+import static java.lang.Integer.MAX_VALUE;
 
 public class Main extends JavaPlugin implements Listener {
 
     Random Rand = new Random();
 
     static Main Plugin;
-    ScoreboardManager Manager = Bukkit.getScoreboardManager();
-    Scoreboard Board = Manager.getMainScoreboard();
+    Scoreboard Board = Bukkit.getScoreboardManager().getMainScoreboard();
     Team Zombie;
     Team Human;
     ItemStack Antibiotic = new ItemStack(Material.HONEY_BOTTLE);
@@ -48,7 +46,7 @@ public class Main extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(this, this);
         if (Board.getTeam("Zombie") == null) {
             Zombie = Board.registerNewTeam("Zombie");
-            Zombie.color(NamedTextColor.RED);
+            Zombie.setColor(ChatColor.RED);
         } else {
             Zombie = Board.getTeam("Zombie");
         }
@@ -56,9 +54,9 @@ public class Main extends JavaPlugin implements Listener {
             Human = Board.registerNewTeam("Human");
         } else {
             Human = Board.getTeam("Human");
-            Human.color(NamedTextColor.AQUA);
+            Human.setColor(ChatColor.AQUA);
         }
-        Antibiotic.getItemMeta().displayName(Component.text("§b항생제"));
+        Antibiotic.getItemMeta().setDisplayName("§b항생제");
         ShapedRecipe AntibioticRecipe = new ShapedRecipe(new NamespacedKey(this, "antibiotic"), Antibiotic);
         AntibioticRecipe.shape("GGG", "GHG", "GGG");
         AntibioticRecipe.setIngredient('G', Material.GOLD_INGOT);
@@ -72,7 +70,7 @@ public class Main extends JavaPlugin implements Listener {
     }
 
     @EventHandler
-    public void onJoin (PlayerJoinEvent e) {
+    public void onJoin(PlayerJoinEvent e) {
         e.getPlayer().getInventory().addItem(Antibiotic);
     }
 
@@ -122,16 +120,8 @@ public class Main extends JavaPlugin implements Listener {
                 return true;
             }
         } else if (cmd.getName().equalsIgnoreCase("zlist")) {
-            Set<OfflinePlayer> Zset = Zombie.getPlayers();
-            Set<OfflinePlayer> Hset = Human.getPlayers();
             sender.sendMessage("좀비 수: " + Zombie.getSize());
-            for (OfflinePlayer i : Zset) {
-                sender.sendMessage(i.getName() + " ");
-            }
             sender.sendMessage("생존자 수: " + Human.getSize());
-            for (OfflinePlayer i : Hset) {
-                sender.sendMessage(i.getName() + " ");
-            }
             return true;
         }
         return false;
@@ -168,7 +158,7 @@ public class Main extends JavaPlugin implements Listener {
         }
     }
 
-    int Task;
+    int InfectTask;
 
     @EventHandler // 좀비 감염
     public void onZombieInfect(EntityDamageByEntityEvent e) {
@@ -179,13 +169,13 @@ public class Main extends JavaPlugin implements Listener {
                 Player p = (Player) Victim;
                 if (Rand.nextInt(10) == 0) {
                     Victim.sendMessage("§c물린 상처가 엄청나게 깊습니다...");
-                    Task = Bukkit.getScheduler().scheduleSyncDelayedTask(Plugin, new Runnable() {
+                    InfectTask = Bukkit.getScheduler().scheduleSyncDelayedTask(Plugin, new Runnable() {
                         @Override
                         public void run() {
                             Bukkit.broadcastMessage("§c" + p.getName() + "(이)가 좀비가 되었습니다!");
-                            p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 10000000, 0, false, false));
-                            p.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 10000000, 0, false, false));
-                            p.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, 10000000, 0, false, false));
+                            p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, MAX_VALUE, 0, false, false));
+                            p.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, MAX_VALUE, 0, false, false));
+                            p.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, MAX_VALUE, 0, false, false));
                             p.setGlowing(true);
                         }
                     }, 600L);
@@ -196,9 +186,11 @@ public class Main extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onHoneyUse(PlayerItemConsumeEvent e) {
-        if (e.getItem().getType() == Material.HONEY_BOTTLE) {
-            Bukkit.getScheduler().cancelTask(Task);
-            e.getPlayer().sendMessage("§b당신은 몸이 정화되는 것을 느꼈습니다.");
+        if (e.getItem() == Antibiotic) {
+            if (Human.hasPlayer(e.getPlayer())) {
+                Bukkit.getScheduler().cancelTask(InfectTask);
+                e.getPlayer().sendMessage("§b당신은 몸이 정화되는 것을 느꼈습니다.");
+            }
         }
     }
 
@@ -218,15 +210,16 @@ public class Main extends JavaPlugin implements Listener {
     }
 
     public Player getRandomPlayer(Team team) { // 팀 안의 랜덤 플레이어 찾기
-        ArrayList TeamList = new ArrayList(); // 온라인 플레이어들 중 일점 팀만이 속한 리스트
-        for (Player o : Bukkit.getOnlinePlayers()) {
-            if (team.hasPlayer(o)) {
-                continue;
-            } else {
-                TeamList.add(o); // 일정 팀의 플레이어들만 리스트에 추가
+        ArrayList<Player> PlayerList = new ArrayList<>();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (team.hasPlayer(p)) {
+                PlayerList.add(p);
             }
         }
-        Player o = (Player) TeamList.get(Rand.nextInt(team.getSize()));
+        Player o = null;
+        if (PlayerList.size() != 0) {
+            o = PlayerList.get(Rand.nextInt(team.getSize()));
+        }
         return o;
     }
 
@@ -241,10 +234,10 @@ public class Main extends JavaPlugin implements Listener {
                     p.sendMessage((p.getCooldown(Material.DIAMOND) / 20 + 1) + "초 남음");
                 } else {
                     Player o = getRandomPlayer(Zombie);
-                    if (o == p) {
+                    if (o == null) {
                         p.sendMessage("주변에 좀비가 없습니다!");
                     } else {
-                        o.sendMessage(p.getName() + "§d이 당신을 소환했습니다!");
+                        o.sendMessage("§d" + p.getName() + "이(가) 당신을 소환했습니다!");
                         o.teleport(p);
                         p.getInventory().removeItem(new ItemStack(Material.DIAMOND));
                         p.setCooldown(Material.DIAMOND, 2000);
@@ -264,7 +257,7 @@ public class Main extends JavaPlugin implements Listener {
                 Player o = getRandomPlayer(Human);
                 if (p.getCooldown(Material.HEART_OF_THE_SEA) != 0) {
                     p.sendMessage((p.getCooldown(Material.HEART_OF_THE_SEA) / 20) + "초 남음");
-                } else if (o == p) {
+                } else if (o == null) {
                     p.sendMessage("주변에 인간이 없습니다!");
                 } else {
                     int oX = o.getLocation().getBlockX();
