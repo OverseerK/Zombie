@@ -1,9 +1,6 @@
 package com.overseer;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -16,8 +13,11 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -38,6 +38,7 @@ public class Main extends JavaPlugin implements Listener {
     Team Zombie;
     Team Human;
     ItemStack Antibiotic = new ItemStack(Material.HONEY_BOTTLE);
+    ItemStack Vaccine = new ItemStack(Material.POTION);
 
     @Override
     public void onEnable() {
@@ -56,12 +57,27 @@ public class Main extends JavaPlugin implements Listener {
             Human = Board.getTeam("Human");
             Human.setColor(ChatColor.AQUA);
         }
-        Antibiotic.getItemMeta().setDisplayName("§b항생제");
+        ItemMeta Meta = Antibiotic.getItemMeta();
+        Meta.setDisplayName("§b항생제");
+        Antibiotic.setItemMeta(Meta);
+        PotionMeta PotionMeta = (PotionMeta) Vaccine.getItemMeta();
+        PotionMeta.setColor(Color.AQUA);
+        PotionMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        PotionMeta.setDisplayName("§b백신");
+        Vaccine.setItemMeta(PotionMeta);
         ShapedRecipe AntibioticRecipe = new ShapedRecipe(new NamespacedKey(this, "antibiotic"), Antibiotic);
         AntibioticRecipe.shape("GGG", "GHG", "GGG");
         AntibioticRecipe.setIngredient('G', Material.GOLD_INGOT);
         AntibioticRecipe.setIngredient('H', Material.HONEY_BOTTLE);
         Bukkit.addRecipe(AntibioticRecipe);
+        ShapedRecipe VaccineRecipe = new ShapedRecipe(new NamespacedKey(this, "vaccine"), Vaccine);
+        VaccineRecipe.shape(" G ", " A ", "CBM");
+        VaccineRecipe.setIngredient('G', Material.GHAST_TEAR);
+        VaccineRecipe.setIngredient('A', Antibiotic);
+        VaccineRecipe.setIngredient('B', Material.BLAZE_POWDER);
+        VaccineRecipe.setIngredient('C', Material.GOLDEN_CARROT);
+        VaccineRecipe.setIngredient('M', Material.GLISTERING_MELON_SLICE);
+        Bukkit.addRecipe(VaccineRecipe);
     }
 
     @Override
@@ -87,9 +103,7 @@ public class Main extends JavaPlugin implements Listener {
                     p.sendMessage("§c대상이 이미 좀비입니다.");
                 } else {
                     Zombie.addPlayer(o);
-                    o.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 10000000, 0, false, false));
-                    o.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 10000000, 0, false, false));
-                    o.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, 10000000, 0, false, false));
+                    zEffect(p);
                     Bukkit.broadcastMessage("§c" + p.getName() + "(이)가 좀비가 되었습니다!");
                     return true;
                 }
@@ -125,6 +139,17 @@ public class Main extends JavaPlugin implements Listener {
             return true;
         }
         return false;
+    }
+
+    public void zEffect(Player p) {
+        Bukkit.getScheduler().scheduleSyncDelayedTask(Plugin, new Runnable() {
+            @Override
+            public void run() {
+                p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, MAX_VALUE, 0, false, false));
+                p.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, MAX_VALUE, 0, false, false));
+                p.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, MAX_VALUE, 0, false, false));
+            }
+        }, 1L);
     }
 
     @EventHandler // 좀비 행동 제한
@@ -167,29 +192,46 @@ public class Main extends JavaPlugin implements Listener {
         if (Victim instanceof Player && Damager instanceof Player) {
             if (Zombie.hasPlayer((Player) Damager) && Human.hasPlayer((Player) Victim)) {
                 Player p = (Player) Victim;
-                if (Rand.nextInt(10) == 0) {
-                    Victim.sendMessage("§c물린 상처가 엄청나게 깊습니다...");
-                    InfectTask = Bukkit.getScheduler().scheduleSyncDelayedTask(Plugin, new Runnable() {
-                        @Override
-                        public void run() {
-                            Bukkit.broadcastMessage("§c" + p.getName() + "(이)가 좀비가 되었습니다!");
-                            p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, MAX_VALUE, 0, false, false));
-                            p.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, MAX_VALUE, 0, false, false));
-                            p.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, MAX_VALUE, 0, false, false));
-                            p.setGlowing(true);
-                        }
-                    }, 600L);
+                if (Bukkit.getScheduler().isCurrentlyRunning(InfectTask) == false) {
+                    if (Rand.nextInt(10) == 0) {
+                        Victim.sendMessage("§c물린 상처가 엄청나게 깊습니다...");
+                        InfectTask = Bukkit.getScheduler().scheduleSyncDelayedTask(Plugin, new Runnable() {
+                            @Override
+                            public void run() {
+                                Bukkit.broadcastMessage("§c" + p.getName() + "(이)가 좀비가 되었습니다!");
+                                Zombie.addPlayer(p);
+                                zEffect(p);
+                            }
+                        }, 600L);
+                    }
                 }
             }
         }
     }
 
-    @EventHandler
-    public void onHoneyUse(PlayerItemConsumeEvent e) {
-        if (e.getItem() == Antibiotic) {
+    @EventHandler //항생제 사용
+    public void onAntibioticUse(PlayerItemConsumeEvent e) {
+        if (e.getItem().getItemMeta().getDisplayName() == "항생제") { //Bukkit.getScheduler().isCurrentlyRunning(InfectTask) == true 추가하기
             if (Human.hasPlayer(e.getPlayer())) {
                 Bukkit.getScheduler().cancelTask(InfectTask);
                 e.getPlayer().sendMessage("§b당신은 몸이 정화되는 것을 느꼈습니다.");
+            }
+        }
+    }
+
+    @EventHandler //백신 사용
+    public void onVaccineUse(PlayerItemConsumeEvent e) {
+        if (e.getItem().getItemMeta().getDisplayName() == "백신") { //Bukkit.getScheduler().isCurrentlyRunning(InfectTask) == true 추가하기
+            Player p = e.getPlayer();
+            if (Zombie.hasPlayer(p)) {
+                Human.addPlayer(p);
+                for (PotionEffect effect : p.getActivePotionEffects())
+                    p.removePotionEffect(effect.getType());
+                p.sendMessage("§b당신은 몸에 생기가 도는 것을 느꼈다!");
+                Bukkit.broadcastMessage("§b" + p.getName() + "(이)가 인간이 되었습니다!");
+            } else {
+                e.setCancelled(true);
+                p.sendMessage("이것을 낭비할 수 없다는 강한 욕구가 느껴집니다.");
             }
         }
     }
@@ -198,43 +240,38 @@ public class Main extends JavaPlugin implements Listener {
     public void onZombieRespawn(PlayerRespawnEvent e) {
         Player p = e.getPlayer();
         if (Zombie.hasPlayer(p)) {
-            Bukkit.getScheduler().scheduleSyncDelayedTask(Plugin, new Runnable() {
-                @Override
-                public void run() {
-                    p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 10000000, 0, false, false));
-                    p.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 10000000, 0, false, false));
-                    p.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, 10000000, 0, false, false));
-                }
-            }, 1L);
+            zEffect(p);
         }
     }
 
-    public Player getRandomPlayer(Team team) { // 팀 안의 랜덤 플레이어 찾기
+    public Player getRandomPlayer(Team team, Player p) { // 팀 안의 랜덤 플레이어 찾기
         ArrayList<Player> PlayerList = new ArrayList<>();
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            if (team.hasPlayer(p)) {
-                PlayerList.add(p);
+        for (Player Player : Bukkit.getOnlinePlayers()) {
+            if (team.hasPlayer(Player) && Player != p) {
+                PlayerList.add(Player);
             }
         }
-        Player o = null;
-        if (PlayerList.size() != 0) {
+        Player o;
+        if (PlayerList.size() == 0) {
+            o = null;
+        } else {
             o = PlayerList.get(Rand.nextInt(team.getSize()));
         }
         return o;
     }
 
-    @EventHandler // 좀비의 다이아몬드 사용
-    public void onZombieTeleport(PlayerInteractEvent e) {
+    @EventHandler // 좀비의 아이템 사용
+    public void onZombieUse(PlayerInteractEvent e) {
         Player p = e.getPlayer();
         Action a = e.getAction();
         ItemStack i = p.getInventory().getItemInMainHand();
-        if (a == Action.RIGHT_CLICK_AIR && i.getType() == Material.DIAMOND) {
+        if (a == Action.RIGHT_CLICK_AIR || a == Action.RIGHT_CLICK_BLOCK) {
             if (Zombie.hasPlayer(p)) {
-                if (p.getCooldown(Material.DIAMOND) != 0) {
-                    p.sendMessage((p.getCooldown(Material.DIAMOND) / 20 + 1) + "초 남음");
-                } else {
-                    Player o = getRandomPlayer(Zombie);
-                    if (o == null) {
+                if (i.getType() == Material.DIAMOND) {
+                    Player o = getRandomPlayer(Zombie, p);
+                    if (p.getCooldown(Material.DIAMOND) != 0) {
+                        p.sendMessage((p.getCooldown(Material.DIAMOND) / 20 + 1) + "초 남음");
+                    } else if (o == null) {
                         p.sendMessage("주변에 좀비가 없습니다!");
                     } else {
                         o.sendMessage("§d" + p.getName() + "이(가) 당신을 소환했습니다!");
@@ -242,31 +279,21 @@ public class Main extends JavaPlugin implements Listener {
                         p.getInventory().removeItem(new ItemStack(Material.DIAMOND));
                         p.setCooldown(Material.DIAMOND, 2000);
                     }
-                }
-            }
-        }
-    }
-
-    @EventHandler // 좀비의 바다의 심장 사용
-    public void onZombieTrack(PlayerInteractEvent e) {
-        Player p = e.getPlayer();
-        Action a = e.getAction();
-        ItemStack i = p.getInventory().getItemInMainHand();
-        if (a == Action.RIGHT_CLICK_AIR && i.getType() == Material.HEART_OF_THE_SEA) {
-            if (Zombie.hasPlayer(p)) {
-                Player o = getRandomPlayer(Human);
-                if (p.getCooldown(Material.HEART_OF_THE_SEA) != 0) {
-                    p.sendMessage((p.getCooldown(Material.HEART_OF_THE_SEA) / 20) + "초 남음");
-                } else if (o == null) {
-                    p.sendMessage("주변에 인간이 없습니다!");
-                } else {
-                    int oX = o.getLocation().getBlockX();
-                    int oY = o.getLocation().getBlockY();
-                    int oZ = o.getLocation().getBlockZ();
-                    o.sendMessage("당신은 추적당하는 기분을 느낍니다.");
-                    p.sendMessage("§d당신은 이공간에서 " + o.getName() + "에 대한 지식을 꺼내왔습니다!");
-                    p.sendMessage(o.getName() + "의 위치 - X: " + oX + " Y: " + oY + " Z: " + oZ);
-                    p.setCooldown(Material.HEART_OF_THE_SEA, 2000);
+                } else if (i.getType() == Material.HEART_OF_THE_SEA) {
+                    Player o = getRandomPlayer(Human, p);
+                    if (p.getCooldown(Material.HEART_OF_THE_SEA) != 0) {
+                        p.sendMessage((p.getCooldown(Material.HEART_OF_THE_SEA) / 20) + "초 남음");
+                    } else if (o == null) {
+                        p.sendMessage("주변에 인간이 없습니다!");
+                    } else {
+                        int oX = o.getLocation().getBlockX();
+                        int oY = o.getLocation().getBlockY();
+                        int oZ = o.getLocation().getBlockZ();
+                        o.sendMessage("당신은 추적당하는 기분을 느낍니다.");
+                        p.sendMessage("§d당신은 이공간에서 " + o.getName() + "에 대한 지식을 꺼내왔습니다!");
+                        p.sendMessage(o.getName() + "의 위치 - X: " + oX + " Y: " + oY + " Z: " + oZ);
+                        p.setCooldown(Material.HEART_OF_THE_SEA, 2000);
+                    }
                 }
             }
         }
