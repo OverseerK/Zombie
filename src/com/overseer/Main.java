@@ -209,20 +209,15 @@ public class Main extends JavaPlugin implements Listener {
         }
     }
 
-    @EventHandler //항생제 사용
-    public void onAntibioticUse(PlayerItemConsumeEvent e) {
-        if (e.getItem().getItemMeta().getDisplayName() == "항생제") { //Bukkit.getScheduler().isCurrentlyRunning(InfectTask) == true 추가하기
-            if (Human.hasPlayer(e.getPlayer())) {
+    @EventHandler //아이템 사용
+    public void onItemUse(PlayerItemConsumeEvent e) {
+        Player p = e.getPlayer();
+        if (e.getItem().getType() == Material.HONEY_BOTTLE) { //Bukkit.getScheduler().isCurrentlyRunning(InfectTask) == true 추가하기
+            if (Human.hasPlayer(p)) {
                 Bukkit.getScheduler().cancelTask(InfectTask);
-                e.getPlayer().sendMessage("§b당신은 몸이 정화되는 것을 느꼈습니다.");
+                p.sendMessage("§b당신은 몸이 정화되는 것을 느꼈습니다.");
             }
-        }
-    }
-
-    @EventHandler //백신 사용
-    public void onVaccineUse(PlayerItemConsumeEvent e) {
-        if (e.getItem().getItemMeta().getDisplayName() == "백신") { //Bukkit.getScheduler().isCurrentlyRunning(InfectTask) == true 추가하기
-            Player p = e.getPlayer();
+        } else if (e.getItem().getType() == Material.POTION) {
             if (Zombie.hasPlayer(p)) {
                 Human.addPlayer(p);
                 for (PotionEffect effect : p.getActivePotionEffects())
