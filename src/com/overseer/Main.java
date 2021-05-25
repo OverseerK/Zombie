@@ -11,7 +11,6 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -85,11 +84,6 @@ public class Main extends JavaPlugin implements Listener {
         System.out.println("[Zombie] Disabled.");
     }
 
-    @EventHandler
-    public void onJoin(PlayerJoinEvent e) {
-        e.getPlayer().getInventory().addItem(Antibiotic);
-    }
-
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         Player p = (Player) sender;
@@ -159,17 +153,15 @@ public class Main extends JavaPlugin implements Listener {
             Action a = e.getAction();
             if (e.getClickedBlock() != null) {
                 Material cb = e.getClickedBlock().getType();
+                Material i = p.getInventory().getItemInMainHand().getType();
                 if (a == Action.RIGHT_CLICK_BLOCK) {
-                    if (cb == Material.CRAFTING_TABLE || cb == Material.ANVIL || cb == Material.FURNACE
-                            || cb == Material.ENCHANTING_TABLE) {
+                    if (cb == Material.CRAFTING_TABLE || cb == Material.ANVIL || cb == Material.FURNACE || cb == Material.ENCHANTING_TABLE) {
                         e.setCancelled(true);
                         p.sendMessage("§c당신은 지성이 없습니다.");
                     }
                 }
-                Material i = p.getInventory().getItemInMainHand().getType();
                 if (a == Action.RIGHT_CLICK_BLOCK) {
-                    if (i == Material.FLINT_AND_STEEL || i == Material.FIREWORK_ROCKET
-                            || i == Material.FIRE_CHARGE || i == Material.ENDER_EYE) {
+                    if (i == Material.FLINT_AND_STEEL || i == Material.FIREWORK_ROCKET || i == Material.FIRE_CHARGE || i == Material.ENDER_EYE) {
                         e.setCancelled(true);
                         p.sendMessage("§c당신은 지성이 없습니다.");
                     }
@@ -192,9 +184,10 @@ public class Main extends JavaPlugin implements Listener {
         if (Victim instanceof Player && Damager instanceof Player) {
             if (Zombie.hasPlayer((Player) Damager) && Human.hasPlayer((Player) Victim)) {
                 Player p = (Player) Victim;
-                if (Bukkit.getScheduler().isCurrentlyRunning(InfectTask) == false) {
+                if (!Bukkit.getScheduler().isCurrentlyRunning(InfectTask)) {
                     if (Rand.nextInt(10) == 0) {
                         Victim.sendMessage("§c물린 상처가 엄청나게 깊습니다...");
+                        Victim.sendMessage("§c빨리 항생제를 찾지 못하면 5분 후에는 사람이 아니게 될 것입니다.");
                         InfectTask = Bukkit.getScheduler().scheduleSyncDelayedTask(Plugin, new Runnable() {
                             @Override
                             public void run() {
@@ -212,8 +205,8 @@ public class Main extends JavaPlugin implements Listener {
     @EventHandler //아이템 사용
     public void onItemUse(PlayerItemConsumeEvent e) {
         Player p = e.getPlayer();
-        if (e.getItem().getType() == Material.HONEY_BOTTLE) { //Bukkit.getScheduler().isCurrentlyRunning(InfectTask) == true 추가하기
-            if (Human.hasPlayer(p)) {
+        if (e.getItem().getType() == Material.HONEY_BOTTLE) {
+            if (Human.hasPlayer(p) && Bukkit.getScheduler().isCurrentlyRunning(InfectTask)) {
                 Bukkit.getScheduler().cancelTask(InfectTask);
                 p.sendMessage("§b당신은 몸이 정화되는 것을 느꼈습니다.");
             }
@@ -222,7 +215,7 @@ public class Main extends JavaPlugin implements Listener {
                 Human.addPlayer(p);
                 for (PotionEffect effect : p.getActivePotionEffects())
                     p.removePotionEffect(effect.getType());
-                p.sendMessage("§b당신은 몸에 생기가 도는 것을 느꼈다!");
+                p.sendMessage("§b당신은 몸에 생기가 도는 것을 느꼈습니다!");
                 Bukkit.broadcastMessage("§b" + p.getName() + "(이)가 인간이 되었습니다!");
             } else {
                 e.setCancelled(true);
