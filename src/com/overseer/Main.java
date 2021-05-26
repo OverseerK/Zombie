@@ -22,6 +22,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -85,11 +86,11 @@ public class Main extends JavaPlugin implements Listener {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String label, String[] args) {
         Player p = (Player) sender;
-        Player o = p;
-        if (args.length != 0 && Bukkit.getServer().getPlayer(args[0]) != null) {
-            o = Bukkit.getServer().getPlayer(args[0]);
+        Player o = Bukkit.getServer().getPlayer(args[0]);
+        if (o == null) {
+            o = p;
         }
         if (cmd.getName().equalsIgnoreCase("zombie")) {
             if (sender instanceof Player) {
@@ -128,8 +129,26 @@ public class Main extends JavaPlugin implements Listener {
                 return true;
             }
         } else if (cmd.getName().equalsIgnoreCase("zlist")) {
-            sender.sendMessage("좀비 수: " + Zombie.getSize());
-            sender.sendMessage("생존자 수: " + Human.getSize());
+            ArrayList<Player> ZombieList = new ArrayList<>();
+            ArrayList<Player> HumanList = new ArrayList<>();
+            for (Player pr : Bukkit.getOnlinePlayers()) {
+                if (Human.hasPlayer(pr)) {
+                    ZombieList.add(pr);
+                }
+            }
+            for (Player pr : Bukkit.getOnlinePlayers()) {
+                if (Human.hasPlayer(pr)) {
+                    HumanList.add(pr);
+                }
+            }
+            sender.sendMessage("현재 좀비 수: " + Zombie.getSize());
+            for (Player pr : ZombieList) {
+                sender.sendMessage(pr.getName());
+            }
+            sender.sendMessage("현재 생존자 수: " + Human.getSize());
+            for (Player pr : HumanList) {
+                sender.sendMessage(pr.getName());
+            }
             return true;
         }
         return false;
