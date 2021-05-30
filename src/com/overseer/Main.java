@@ -25,6 +25,7 @@ import org.bukkit.scoreboard.Team;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Random;
 
 import static java.lang.Integer.MAX_VALUE;
@@ -62,7 +63,7 @@ public class Main extends JavaPlugin implements Listener {
         Antibiotic.setItemMeta(Meta);
         PotionMeta PotionMeta = (PotionMeta) Vaccine.getItemMeta();
         PotionMeta.setColor(Color.AQUA);
-        PotionMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        PotionMeta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS);
         PotionMeta.setDisplayName("§b백신");
         Vaccine.setItemMeta(PotionMeta);
         ShapedRecipe AntibioticRecipe = new ShapedRecipe(new NamespacedKey(this, "antibiotic"), Antibiotic);
@@ -73,7 +74,7 @@ public class Main extends JavaPlugin implements Listener {
         ShapedRecipe VaccineRecipe = new ShapedRecipe(new NamespacedKey(this, "vaccine"), Vaccine);
         VaccineRecipe.shape(" G ", " A ", "CBM");
         VaccineRecipe.setIngredient('G', Material.GHAST_TEAR);
-        VaccineRecipe.setIngredient('A', Antibiotic);
+        VaccineRecipe.setIngredient('A', Material.GLASS_BOTTLE);
         VaccineRecipe.setIngredient('B', Material.BLAZE_POWDER);
         VaccineRecipe.setIngredient('C', Material.GOLDEN_CARROT);
         VaccineRecipe.setIngredient('M', Material.GLISTERING_MELON_SLICE);
@@ -86,68 +87,106 @@ public class Main extends JavaPlugin implements Listener {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String label, String[] args) {
-        Player p = (Player) sender;
-        Player o = Bukkit.getServer().getPlayer(args[0]);
-        if (o == null) {
-            o = p;
-        }
+    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (cmd.getName().equalsIgnoreCase("zombie")) {
-            if (sender instanceof Player) {
-                if (Zombie.hasPlayer(o)) {
-                    p.sendMessage("§c대상이 이미 좀비입니다.");
+            if (args.length != 0) {
+                if (args[0].length() != 0 && Bukkit.getPlayer(args[0]) != null) {
+                    Player p = Bukkit.getPlayer(args[0]);
+                    if (!Zombie.hasPlayer(p)) {
+                        Bukkit.broadcastMessage("§c" + p.getName() + "이(가) 좀비가 되었습니다!");
+                        Human.removePlayer(p);
+                        Zombie.addPlayer(p);
+                        zEffect(p);
+                    } else {
+                        sender.sendMessage("§c" + p.getName() + "은(는) 이미 좀비입니다.");
+                    }
                 } else {
-                    Zombie.addPlayer(o);
+                    sender.sendMessage("§c올바른 대상이 있어야 합니다!");
+                }
+            } else if (sender instanceof Player) {
+                Player p = (Player) sender;
+                if (!Zombie.hasPlayer(p)) {
+                    Bukkit.broadcastMessage("§c" + p.getName() + "이(가) 좀비가 되었습니다!");
+                    Human.removePlayer(p);
+                    Zombie.addPlayer(p);
                     zEffect(p);
-                    Bukkit.broadcastMessage("§c" + p.getName() + "(이)가 좀비가 되었습니다!");
-                    return true;
-                }
-            }
-        } else if (cmd.getName().equalsIgnoreCase("human")) {
-            if (sender instanceof Player) {
-                if (Human.hasPlayer(o)) {
-                    p.sendMessage("§c대상이 이미 인간입니다.");
                 } else {
-                    Human.addPlayer(o);
-                    for (PotionEffect effect : o.getActivePotionEffects())
-                        o.removePotionEffect(effect.getType());
-                    Bukkit.broadcastMessage("§b" + p.getName() + "(이)가 인간이 되었습니다!");
+                    sender.sendMessage("§c" + p.getName() + "은(는) 이미 좀비입니다.");
                 }
-                return true;
+            } else {
+                sender.sendMessage("§c올바른 대상이 있어야 합니다!");
             }
+            return true;
+        } else if (cmd.getName().equalsIgnoreCase("human")) {
+            if (args.length != 0) {
+                if (args[0].length() != 0 && Bukkit.getPlayer(args[0]) != null) {
+                    Player p = Bukkit.getPlayer(args[0]);
+                    if (!Human.hasPlayer(p)) {
+                        Bukkit.broadcastMessage("§b" + p.getName() + "이(가) 인간이 되었습니다!");
+                        Zombie.removePlayer(p);
+                        Human.addPlayer(p);
+                        for (PotionEffect e : p.getActivePotionEffects())
+                            p.removePotionEffect(e.getType());
+                    } else {
+                        sender.sendMessage("§b" + p.getName() + "은(는) 이미 인간입니다.");
+                    }
+                } else {
+                    sender.sendMessage("§c올바른 대상이 있어야 합니다!");
+                }
+            } else if (sender instanceof Player) {
+                Player p = (Player) sender;
+                if (!Human.hasPlayer(p)) {
+                    Bukkit.broadcastMessage("§b" + p.getName() + "이(가) 인간이 되었습니다!");
+                    Zombie.removePlayer(p);
+                    Human.addPlayer(p);
+                    for (PotionEffect e : p.getActivePotionEffects())
+                        p.removePotionEffect(e.getType());
+                } else {
+                    sender.sendMessage("§b" + p.getName() + "은(는) 이미 인간입니다.");
+                }
+            } else {
+                sender.sendMessage("§c올바른 대상이 있어야 합니다!");
+            }
+            return true;
         } else if (cmd.getName().equalsIgnoreCase("zremove")) {
-            if (sender instanceof Player) {
-                if (Human.hasPlayer(o)) {
-                    Human.removePlayer(o);
+            if (args.length != 0) {
+                if (args[0].length() != 0 && Bukkit.getPlayer(args[0]) != null) {
+                    Player p = Bukkit.getPlayer(args[0]);
+                    Human.removePlayer(p);
+                    Zombie.removePlayer(p);
+                    sender.sendMessage(p.getName() + "은(는) 이제 아무것도 아닙니다.");
+                } else {
+                    sender.sendMessage("§c올바른 대상이 있어야 합니다!");
                 }
-                if (Zombie.hasPlayer(o)) {
-                    Zombie.removePlayer(o);
-                }
-                for (PotionEffect effect : o.getActivePotionEffects())
-                    o.removePotionEffect(effect.getType());
-                Bukkit.broadcastMessage(p.getName() + "(은)는 이제 아무것도 아닙니다.");
-                return true;
+            } else if (sender instanceof Player) {
+                Player p = (Player) sender;
+                Human.removePlayer(p);
+                Zombie.removePlayer(p);
+                sender.sendMessage(p.getName() + "은(는) 이제 아무것도 아닙니다.");
+            } else {
+                sender.sendMessage("§c올바른 대상이 있어야 합니다!");
             }
+            return true;
         } else if (cmd.getName().equalsIgnoreCase("zlist")) {
-            ArrayList<Player> ZombieList = new ArrayList<>();
-            ArrayList<Player> HumanList = new ArrayList<>();
-            for (Player pr : Bukkit.getOnlinePlayers()) {
-                if (Human.hasPlayer(pr)) {
-                    ZombieList.add(pr);
+            ArrayList<Player> ZombieList = new ArrayList();
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (Zombie.hasPlayer(p)) {
+                    ZombieList.add(p);
                 }
             }
-            for (Player pr : Bukkit.getOnlinePlayers()) {
-                if (Human.hasPlayer(pr)) {
-                    HumanList.add(pr);
+            ArrayList<Player> HumanList = new ArrayList();
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (Human.hasPlayer(p)) {
+                    HumanList.add(p);
                 }
             }
-            sender.sendMessage("현재 좀비 수: " + Zombie.getSize());
-            for (Player pr : ZombieList) {
-                sender.sendMessage(pr.getName());
+            sender.sendMessage("현재 좀비 수: " + ZombieList.size());
+            for (Player p : ZombieList) {
+                sender.sendMessage(String.valueOf(p));
             }
-            sender.sendMessage("현재 생존자 수: " + Human.getSize());
-            for (Player pr : HumanList) {
-                sender.sendMessage(pr.getName());
+            sender.sendMessage("현재 인간 수: " + HumanList.size());
+            for (Player p : HumanList) {
+                sender.sendMessage(String.valueOf(p));
             }
             return true;
         }
@@ -224,12 +263,15 @@ public class Main extends JavaPlugin implements Listener {
     @EventHandler //아이템 사용
     public void onItemUse(PlayerItemConsumeEvent e) {
         Player p = e.getPlayer();
-        if (e.getItem().getType() == Material.HONEY_BOTTLE) {
+        if (ChatColor.stripColor(p.getItemInHand().getItemMeta().getDisplayName()).equals("항생제")) {
             if (Human.hasPlayer(p) && Bukkit.getScheduler().isCurrentlyRunning(InfectTask)) {
                 Bukkit.getScheduler().cancelTask(InfectTask);
                 p.sendMessage("§b당신은 몸이 정화되는 것을 느꼈습니다.");
+            } else {
+                e.setCancelled(true);
+                p.sendMessage("어째서인지 당신은 이것을 먹지 않으려는 강한 욕구를 느꼈습니다.");
             }
-        } else if (e.getItem().getType() == Material.POTION) {
+        } else if (ChatColor.stripColor(p.getItemInHand().getItemMeta().getDisplayName()).equals("백신")) {
             if (Zombie.hasPlayer(p)) {
                 Human.addPlayer(p);
                 for (PotionEffect effect : p.getActivePotionEffects())
@@ -238,7 +280,7 @@ public class Main extends JavaPlugin implements Listener {
                 Bukkit.broadcastMessage("§b" + p.getName() + "(이)가 인간이 되었습니다!");
             } else {
                 e.setCancelled(true);
-                p.sendMessage("이것을 낭비할 수 없다는 강한 욕구가 느껴집니다.");
+                p.sendMessage("어째서인지 당신은 이것을 먹지 않으려는 강한 욕구를 느꼈습니다.");
             }
         }
     }
