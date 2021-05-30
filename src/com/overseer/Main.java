@@ -180,13 +180,13 @@ public class Main extends JavaPlugin implements Listener {
                     HumanList.add(p);
                 }
             }
-            sender.sendMessage("현재 좀비 수: " + ZombieList.size());
+            sender.sendMessage("§c현재 좀비 수: " + ZombieList.size());
             for (Player p : ZombieList) {
-                sender.sendMessage(String.valueOf(p));
+                sender.sendMessage("§c" + p);
             }
-            sender.sendMessage("현재 인간 수: " + HumanList.size());
+            sender.sendMessage("§b현재 인간 수: " + HumanList.size());
             for (Player p : HumanList) {
-                sender.sendMessage(String.valueOf(p));
+                sender.sendMessage("§b" + p);
             }
             return true;
         }
