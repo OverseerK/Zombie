@@ -22,10 +22,8 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.Random;
 
 import static java.lang.Integer.MAX_VALUE;
@@ -269,7 +267,7 @@ public class Main extends JavaPlugin implements Listener {
                 p.sendMessage("§b당신은 몸이 정화되는 것을 느꼈습니다.");
             } else {
                 e.setCancelled(true);
-                p.sendMessage("어째서인지 당신은 이것을 먹지 않으려는 강한 욕구를 느꼈습니다.");
+                p.sendMessage("어째서인지, 당신은 이것을 사용하지 않으려는 강한 욕구를 느꼈습니다.");
             }
         } else if (ChatColor.stripColor(p.getItemInHand().getItemMeta().getDisplayName()).equals("백신")) {
             if (Zombie.hasPlayer(p)) {
@@ -280,7 +278,7 @@ public class Main extends JavaPlugin implements Listener {
                 Bukkit.broadcastMessage("§b" + p.getName() + "(이)가 인간이 되었습니다!");
             } else {
                 e.setCancelled(true);
-                p.sendMessage("어째서인지 당신은 이것을 먹지 않으려는 강한 욕구를 느꼈습니다.");
+                p.sendMessage("어째서인지, 당신은 이것을 사용하지 않으려는 강한 욕구를 느꼈습니다.");
             }
         }
     }
