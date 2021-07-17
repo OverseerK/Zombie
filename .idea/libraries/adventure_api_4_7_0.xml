@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="adventure-api-4.7.0">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/net/kyori/adventure-api/4.7.0/adventure-api-4.7.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

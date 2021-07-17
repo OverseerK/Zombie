@@ -11,3 +11,5 @@ commands:
     description: "removes you from zombie list"
   zlist:
     description: "shows team list"
+  zget:
+    description: "obtain zombie items"

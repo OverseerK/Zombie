@@ -1,6 +1,7 @@
 package com.overseer;
 
 import org.bukkit.*;
+import org.bukkit.entity.Zombie;
 import org.bukkit.event.EventHandler;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -32,8 +33,8 @@ public class Main extends JavaPlugin implements Listener {
 
     Random Rand = new Random();
 
-    static Main Plugin;
-    Scoreboard Board = Bukkit.getScoreboardManager().getMainScoreboard();
+    Main Plugin;
+    Scoreboard Board;
     Team Zombie;
     Team Human;
     ItemStack Antibiotic = new ItemStack(Material.HONEY_BOTTLE);
@@ -44,6 +45,7 @@ public class Main extends JavaPlugin implements Listener {
         Plugin = this;
         System.out.println("[Zombie] Enabled.");
         Bukkit.getPluginManager().registerEvents(this, this);
+        Board = Bukkit.getScoreboardManager().getMainScoreboard();
         if (Board.getTeam("Zombie") == null) {
             Zombie = Board.registerNewTeam("Zombie");
             Zombie.setColor(ChatColor.RED);
@@ -123,8 +125,9 @@ public class Main extends JavaPlugin implements Listener {
                         Bukkit.broadcastMessage("§b" + p.getName() + "이(가) 인간이 되었습니다!");
                         Zombie.removePlayer(p);
                         Human.addPlayer(p);
-                        for (PotionEffect e : p.getActivePotionEffects())
+                        for (PotionEffect e : p.getActivePotionEffects()) {
                             p.removePotionEffect(e.getType());
+                        }
                     } else {
                         sender.sendMessage("§b" + p.getName() + "은(는) 이미 인간입니다.");
                     }
@@ -137,8 +140,9 @@ public class Main extends JavaPlugin implements Listener {
                     Bukkit.broadcastMessage("§b" + p.getName() + "이(가) 인간이 되었습니다!");
                     Zombie.removePlayer(p);
                     Human.addPlayer(p);
-                    for (PotionEffect e : p.getActivePotionEffects())
+                    for (PotionEffect e : p.getActivePotionEffects()) {
                         p.removePotionEffect(e.getType());
+                    }
                 } else {
                     sender.sendMessage("§b" + p.getName() + "은(는) 이미 인간입니다.");
                 }
@@ -187,6 +191,15 @@ public class Main extends JavaPlugin implements Listener {
                 sender.sendMessage("§b" + p);
             }
             return true;
+        } else if (cmd.getName().equalsIgnoreCase("zget")) {
+            if (sender instanceof Player) {
+                Player p = (Player) sender;
+                p.getInventory().addItem(Antibiotic);
+                p.getInventory().addItem(Vaccine);
+                p.getInventory().addItem(new ItemStack(Material.DIAMOND));
+                p.getInventory().addItem(new ItemStack(Material.HEART_OF_THE_SEA));
+            }
+            return true;
         }
         return false;
     }
@@ -231,19 +244,54 @@ public class Main extends JavaPlugin implements Listener {
         }
     }
 
+    @EventHandler // 좀비 행동 제한
+    public void onZombieComsume(PlayerItemConsumeEvent e) {
+        Player p = e.getPlayer();
+        if (Zombie.hasPlayer(p)) {
+            if (!ChatColor.stripColor(e.getItem().getItemMeta().getDisplayName()).equals("백신")) {
+                e.setCancelled(true);
+                p.sendMessage("§c당신의 몸은 무언가를 소화할 수 없습니다.");
+            }
+        }
+    }
+
     int InfectTask;
 
     @EventHandler // 좀비 감염
     public void onZombieInfect(EntityDamageByEntityEvent e) {
         Entity Victim = e.getEntity();
         Entity Damager = e.getDamager();
-        if (Victim instanceof Player && Damager instanceof Player) {
-            if (Zombie.hasPlayer((Player) Damager) && Human.hasPlayer((Player) Victim)) {
-                Player p = (Player) Victim;
-                if (!Bukkit.getScheduler().isCurrentlyRunning(InfectTask)) {
-                    if (Rand.nextInt(10) == 0) {
-                        Victim.sendMessage("§c물린 상처가 엄청나게 깊습니다...");
-                        Victim.sendMessage("§c빨리 항생제를 찾지 못하면 5분 후에는 사람이 아니게 될 것입니다.");
+            if (Victim instanceof Player && Damager instanceof Player) {
+                if (Zombie.hasPlayer((Player) Damager) && Human.hasPlayer((Player) Victim)) {
+                    Player p = (Player) Victim;
+                    if (!Bukkit.getScheduler().isQueued(InfectTask)) {
+                        if (Rand.nextInt(5) == 0) {
+                            Victim.sendMessage("§c물린 상처가 엄청나게 깊습니다...");
+                            Victim.sendMessage("§c빨리 항생제를 찾지 못하면 5분 후에는 사람이 아니게 될 것입니다.");
+                            InfectTask = Bukkit.getScheduler().scheduleSyncDelayedTask(Plugin, new Runnable() {
+                                @Override
+                                public void run() {
+                                    Bukkit.broadcastMessage("§c" + p.getName() + "(이)가 좀비가 되었습니다!");
+                                    Zombie.addPlayer(p);
+                                    zEffect(p);
+                                }
+                            }, 6000L);
+                    }
+                }
+            }
+        }
+    }
+
+    @EventHandler // 좀비 감염2222
+    public void onZombieInfectbyMob(EntityDamageByEntityEvent e) {
+        Entity Damager = e.getDamager();
+        if (Damager instanceof Zombie) {
+            if (e.getEntity() instanceof Player && Human.hasPlayer((Player) e.getEntity())) {
+                Player p = (Player) e.getEntity();
+                if (!Bukkit.getScheduler().isQueued(InfectTask)) {
+                    if (Rand.nextInt(20) == 0) {
+                        p.sendMessage("§c물린 상처가 엄청나게 깊습니다...");
+                        p.sendMessage("§c빨리 항생제를 찾지 못하면 20분 후에는 사람이 아니게 될 것입니다.");
                         InfectTask = Bukkit.getScheduler().scheduleSyncDelayedTask(Plugin, new Runnable() {
                             @Override
                             public void run() {
@@ -251,29 +299,30 @@ public class Main extends JavaPlugin implements Listener {
                                 Zombie.addPlayer(p);
                                 zEffect(p);
                             }
-                        }, 600L);
+                        }, 24000L);
                     }
                 }
             }
         }
     }
 
-    @EventHandler //아이템 사용
+    @EventHandler // 아이템 사용
     public void onItemUse(PlayerItemConsumeEvent e) {
         Player p = e.getPlayer();
         if (ChatColor.stripColor(p.getItemInHand().getItemMeta().getDisplayName()).equals("항생제")) {
-            if (Human.hasPlayer(p) && Bukkit.getScheduler().isCurrentlyRunning(InfectTask)) {
+            if (Human.hasPlayer(p) && Bukkit.getScheduler().isQueued(InfectTask)) {
                 Bukkit.getScheduler().cancelTask(InfectTask);
                 p.sendMessage("§b당신은 몸이 정화되는 것을 느꼈습니다.");
-            } else {
+            } else if (Human.hasPlayer(p)) {
                 e.setCancelled(true);
                 p.sendMessage("어째서인지, 당신은 이것을 사용하지 않으려는 강한 욕구를 느꼈습니다.");
             }
         } else if (ChatColor.stripColor(p.getItemInHand().getItemMeta().getDisplayName()).equals("백신")) {
             if (Zombie.hasPlayer(p)) {
                 Human.addPlayer(p);
-                for (PotionEffect effect : p.getActivePotionEffects())
+                for (PotionEffect effect : p.getActivePotionEffects()) {
                     p.removePotionEffect(effect.getType());
+                }
                 p.sendMessage("§b당신은 몸에 생기가 도는 것을 느꼈습니다!");
                 Bukkit.broadcastMessage("§b" + p.getName() + "(이)가 인간이 되었습니다!");
             } else {

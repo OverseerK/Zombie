@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="jar" name="Zombie">
-    <output-path>$PROJECT_DIR$/../ZombieTest/plugins</output-path>
+    <output-path>$PROJECT_DIR$/../../ZombieTest/plugins</output-path>
     <root id="archive" name="Zombie.jar">
       <element id="module-output" name="Zombie" />
       <element id="file-copy" path="$PROJECT_DIR$/plugin.yml" />

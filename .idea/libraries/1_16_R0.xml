@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="1.16-R0">
+    <CLASSES>
+      <root url="file://$MAVEN_REPOSITORY$/net/md-5/bungeecord-chat/1.16-R0.4" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$MAVEN_REPOSITORY$/net/md-5/bungeecord-chat/1.16-R0.4" />
+    </SOURCES>
+    <jarDirectory url="file://$MAVEN_REPOSITORY$/net/md-5/bungeecord-chat/1.16-R0.4" recursive="false" />
+    <jarDirectory url="file://$MAVEN_REPOSITORY$/net/md-5/bungeecord-chat/1.16-R0.4" recursive="false" type="SOURCES" />
+  </library>
+</component>
